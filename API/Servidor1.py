@@ -11,22 +11,20 @@ CORS(app)  # Habilita CORS para todas as rotas
 
 # Rotas sob a responsabilidade do servidor 1
 routes_server1 = {
-    'Recife->Fortaleza->Salvador->Brasilia': 5,
-    'Recife->Brasilia->Fortaleza->Manaus': 3,
-    'Recife->Salvador->Brasilia->Uberlandia': 4,
+    'Barreiras->Fortaleza->Salvador->Vitoria': 5,
+    'Barreiras->Brasilia->Fortaleza->Salvador': 7,
+    'Barreiras->Salvador->Brasilia->Manaus': 4,
 }
 
 # Lista de servidores
 servers = [
-    ('localhost', 8082),
+    ('localhost', 8082),  # Adicione o segundo servidor aqui
 ]
 
 # Token inicial
 token = {
-    "current_holder": 1,
+    "current_holder": 2,
 }
-
-current_server_id = 1
 
 # Fila de solicitações pendentes
 pending_requests = deque()
@@ -60,7 +58,7 @@ def comprar_passagem():
     rota = data.get('rota')
     
     if rota:
-        if token['current_holder'] == 1:  # Verifica se o servidor possui o token
+        if token['current_holder'] == 2:  # Verifica se o servidor possui o token
             print(f"Servidor 1: Processando compra para a rota: {rota}")
             resultado = process_purchase(rota)
             if resultado['success']:
@@ -79,7 +77,7 @@ def comprar_passagem():
 
 @app.route('/api/verificar_token', methods=['GET'])
 def verificar_token():
-    return jsonify({"has_token": token['current_holder'] == 1})  # Verifica se o servidor atual tem o token
+    return jsonify({"has_token": token['current_holder'] == 2})  # Verifica se o servidor atual tem o token
 
 def process_pending_requests():
     while True:
@@ -97,7 +95,7 @@ def start_token_server():
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-                s.bind(('localhost', 8084))
+                s.bind(('localhost', 8085))
                 s.listen()
                 print("Servidor de tokens está ouvindo...")
                 while True:
@@ -120,9 +118,26 @@ def start_token_server():
 
         except Exception as e:
             print(f"Ocorreu um erro no servidor de tokens: {e}")
-            time.sleep(3)
-            
+            time.sleep(1)
 
+'''
+def send_token(token_data):
+    try:
+        if len(servers) > 0:
+            # Determina o próximo servidor com base no `current_holder`
+            next_server = servers[token['current_holder'] - 1]
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.connect(next_server)
+                s.sendall(json.dumps(token_data).encode('utf-8'))
+                print(f"Token enviado para o próximo servidor {next_server}.")
+        else:
+            print("Nenhum servidor disponível para enviar o token.")
+    except Exception as e:
+        print(f"Erro ao enviar o token: {e}")
+
+
+
+'''
 def send_token(token_data):
     try:
         if len(servers) > 0:
@@ -145,4 +160,4 @@ def iniciar_token_thread():
 
 if __name__ == '__main__':
     iniciar_token_thread()
-    app.run(port=8081, debug=True)  # Servidor escutando na porta 8081
+    app.run(port=8082, debug=True)  # Servidor escutando na porta 8081
