@@ -18,13 +18,15 @@ routes_server1 = {
 
 # Lista de servidores
 servers = [
-    ('localhost', 8082),  # Adicione o segundo servidor aqui
+    ('localhost', 8082),
 ]
 
 # Token inicial
 token = {
     "current_holder": 1,
 }
+
+current_server_id = 1
 
 # Fila de solicitações pendentes
 pending_requests = deque()
@@ -105,32 +107,37 @@ def start_token_server():
                         token_data = json.loads(conn.recv(1024).decode('utf-8'))
                         print(f"Servidor 1: Token recebido: {token_data}")
                         print("Servidor 1: Processando token...")
-                        
-                        # Verifica se há mais servidores
+
+                        process_pending_requests()  # Processa as solicitações pendentes
+
+                        # Verifica se há mais servidores para passar o token
                         if len(servers) > 0:
-                            token['current_holder'] = (token['current_holder'] % (len(servers) + 1)) + 1  # Passa para o próximo servidor
+                            token['current_holder'] = (token['current_holder'] % len(servers)) + 1
                             print(f"Servidor 1: Token passado para o Servidor {token['current_holder']}.")
+                            send_token(token_data)
                         else:
                             print("Servidor 1: Não há outros servidores. Mantendo o token.")
 
-                        send_token(token_data)
-                        process_pending_requests()  # Processa as solicitações pendentes
         except Exception as e:
             print(f"Ocorreu um erro no servidor de tokens: {e}")
-            time.sleep(1)
+            time.sleep(3)
+            
 
 def send_token(token_data):
     try:
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            if len(servers) > 0:
-                next_server = servers[(token['current_holder'] - 1) % len(servers)]
+        if len(servers) > 0:
+            # Determina o próximo servidor com base no `current_holder`
+            next_server = servers[token['current_holder'] - 1]
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 s.connect(next_server)
                 s.sendall(json.dumps(token_data).encode('utf-8'))
-                print(f"Servidor 1: Token enviado para {next_server}.")
-            else:
-                print("Servidor 1: Não há servidores para enviar o token.")
+                print(f"Token enviado para o próximo servidor {next_server}.")
+        else:
+            print("Nenhum servidor disponível para enviar o token.")
     except Exception as e:
-        print(f"Ocorreu um erro ao enviar o token: {e}")
+        print(f"Erro ao enviar o token: {e}")
+
+
 
 def iniciar_token_thread():
     thread = threading.Thread(target=start_token_server)
