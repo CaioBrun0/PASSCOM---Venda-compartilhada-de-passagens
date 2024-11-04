@@ -18,15 +18,13 @@ routes_server1 = {
 
 # Lista de servidores
 servers = [
-    ('localhost', 8081),
+    ('localhost', 8082),  # Adicione o segundo servidor aqui
 ]
 
 # Token inicial
 token = {
     "current_holder": 2,
 }
-
-current_server_id = 2
 
 # Fila de solicitações pendentes
 pending_requests = deque()
@@ -120,22 +118,24 @@ def start_token_server():
 
         except Exception as e:
             print(f"Ocorreu um erro no servidor de tokens: {e}")
-            time.sleep(3)
-
+            time.sleep(1)
 
 '''
 def send_token(token_data):
     try:
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            if len(servers) > 0:
-                next_server = servers[(token['current_holder'] - 1) % len(servers)]
+        if len(servers) > 0:
+            # Determina o próximo servidor com base no `current_holder`
+            next_server = servers[token['current_holder'] - 1]
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 s.connect(next_server)
                 s.sendall(json.dumps(token_data).encode('utf-8'))
-                print(f"Servidor 1: Token enviado para {next_server}.")
-            else:
-                print("Servidor 1: Não há servidores para enviar o token.")
+                print(f"Token enviado para o próximo servidor {next_server}.")
+        else:
+            print("Nenhum servidor disponível para enviar o token.")
     except Exception as e:
-        print(f"Ocorreu um erro ao enviar o token: {e}")
+        print(f"Erro ao enviar o token: {e}")
+
+
 
 '''
 def send_token(token_data):
